@@ -23,6 +23,7 @@ using std::endl;
 using json = nlohmann::json;
 
 #define MIN_TIME_BETWEEN_DEPTH_CAMERA_PICTURES_USEC 160
+#define CHESSBOARD_SQUARE_SIZE 24
 
 static cv::Mat depth_to_opencv(const k4a::image& im)
 {
@@ -425,7 +426,7 @@ int main(int argc, char * argv[]) {
             main_config,
             secondary_config,
             cv::Size(9, 6),
-            24.00,
+            CHESSBOARD_SQUARE_SIZE,
             60.00);
     } else {
         std::cout << "testing" << std::endl;
