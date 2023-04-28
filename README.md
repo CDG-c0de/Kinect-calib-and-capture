@@ -7,7 +7,7 @@ k4a (only tested with 1.4.1, also known as the Microsoft Azure Kinect sensor SDK
 ## How to run
 After compiling the executable has to be run with one argument, a `0` or a `1` <br />
 If the argument `1` is passed the program will run with stereo calibration and generate a new extrinsic.json <br />
-If the argument `0` is passed the program will run using the previously generated stereo calibration data (extrinsic.json) and thus skipt the stereo calibration process <br /> <br />
+If the argument `0` is passed the program will run using the previously generated stereo calibration data (extrinsic.json) and thus skip the stereo calibration process <br /> <br />
 Upon running the executable the captures that will be used for the point cloud(s) are immediately made <br />
 Subsequently the program pauses, and explains the calibration process, before taking a capture for the calibration the user has to give input <br />
 After 50 captures the calibration is complete <br />
