@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <k4a/k4a.h>
 #include <algorithm>
 #include <iostream>
@@ -11,6 +12,8 @@ using namespace std;
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <open3d/Open3D.h>
+using namespace open3d;
 
 using std::vector;
 using std::cerr;
@@ -23,7 +26,7 @@ using std::endl;
 using json = nlohmann::json;
 
 #define MIN_TIME_BETWEEN_DEPTH_CAMERA_PICTURES_USEC 160
-#define CHESSBOARD_SQUARE_SIZE 18
+#define CHESSBOARD_SQUARE_SIZE 24
 
 static cv::Mat depth_to_opencv(const k4a::image& im) {
     return cv::Mat(im.get_height_pixels(),
@@ -387,9 +390,12 @@ int main(int argc, char* argv[]) {
     cv::Mat main_valid_mask = cv_main_depth_in_main_color != 0;
     cv::Mat secondary_valid_mask = cv_secondary_depth_in_main_color != 0;
 
-    cv::Mat within_threshold_range_1 = (main_valid_mask & (cv_main_depth_in_main_color < depth_threshold)) |
-        (~main_valid_mask & secondary_valid_mask &
-            (cv_secondary_depth_in_main_color < depth_threshold));
+    //cv::Mat within_threshold_range_1 = (main_valid_mask & (cv_main_depth_in_main_color < depth_threshold)) |
+    //    (~main_valid_mask & secondary_valid_mask &
+    //        (cv_secondary_depth_in_main_color < depth_threshold));
+
+    cv::Mat within_threshold_range_1 = (image1 != 0) &
+        (image1 < depth_threshold);
 
     cv::Mat within_threshold_range_2 = (image3 != 0) &
         (image3 < depth_threshold);
@@ -404,6 +410,34 @@ int main(int argc, char* argv[]) {
     cv::imwrite("depth1.png", outp3);
     image3.copyTo(outp4, within_threshold_range_2);
     cv::imwrite("depth2.png", outp4);
+
+    geometry::Image o3dimg1, o3dimg2, o3dimg3, o3dimg4;
+    io::ReadImage("color1.jpg", o3dimg1);
+    io::ReadImage("depth1.png", o3dimg2);
+    io::ReadImage("color2.jpg", o3dimg3);
+    io::ReadImage("depth2.png", o3dimg4);
+
+    auto RGBD1 = geometry::RGBDImage::CreateFromColorAndDepth(o3dimg1, o3dimg2, 1000.0, 3.0, false);
+    auto RGBD2 = geometry::RGBDImage::CreateFromColorAndDepth(o3dimg3, o3dimg4, 1000.0, 3.0, false);
+
+    auto phc = camera::PinholeCameraIntrinsic();
+    auto phc2 = camera::PinholeCameraIntrinsic();
+
+    float* intrins_main = main_calibration.color_camera_calibration.intrinsics.parameters.v;
+    float* intrins_sec = secondary_calibration.color_camera_calibration.intrinsics.parameters.v;
+
+    phc.SetIntrinsics(image.cols, image.rows, intrins_main[2], intrins_main[3], intrins_main[0], intrins_main[1]);
+    phc2.SetIntrinsics(image2.cols, image2.rows, intrins_sec[2], intrins_sec[3], intrins_sec[0], intrins_sec[1]);
+
+    auto pcd = geometry::PointCloud::CreateFromRGBDImage(*RGBD1.get(), phc);
+    auto pcd2 = geometry::PointCloud::CreateFromRGBDImage(*RGBD2.get(), phc2);
+
+    std::vector<std::shared_ptr<const geometry::Geometry>> pcds;
+
+    pcds[0] = pcd;
+    pcds[1] = pcd2;
+
+    visualization::DrawGeometries(pcds);
 
     cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
     std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
