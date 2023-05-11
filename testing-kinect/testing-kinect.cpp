@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include <k4a/k4a.h>
 #include <algorithm>
 #include <iostream>
@@ -12,8 +11,6 @@ using namespace std;
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-#include <open3d/Open3D.h>
-using namespace open3d;
 
 using std::vector;
 using std::cerr;
@@ -27,6 +24,7 @@ using json = nlohmann::json;
 
 #define MIN_TIME_BETWEEN_DEPTH_CAMERA_PICTURES_USEC 160
 #define CHESSBOARD_SQUARE_SIZE 24
+#define FLANN_INDEX_KDTREE 1
 
 static cv::Mat depth_to_opencv(const k4a::image& im) {
     return cv::Mat(im.get_height_pixels(),
@@ -143,9 +141,11 @@ bool find_chessboard_corners_helper(const cv::Mat& main_color_image,
     if (!found_chessboard_main || !found_chessboard_secondary) {
         if (found_chessboard_main) {
             cout << "Could not find the chessboard corners in the secondary image. Trying again...\n";
-        } else if (found_chessboard_secondary) {
+        }
+        else if (found_chessboard_secondary) {
             cout << "Could not find the chessboard corners in the main image. Trying again...\n";
-        } else {
+        }
+        else {
             cout << "Could not find the chessboard corners in either image. Trying again...\n";
         }
         return false;
@@ -390,10 +390,6 @@ int main(int argc, char* argv[]) {
     cv::Mat main_valid_mask = cv_main_depth_in_main_color != 0;
     cv::Mat secondary_valid_mask = cv_secondary_depth_in_main_color != 0;
 
-    //cv::Mat within_threshold_range_1 = (main_valid_mask & (cv_main_depth_in_main_color < depth_threshold)) |
-    //    (~main_valid_mask & secondary_valid_mask &
-    //        (cv_secondary_depth_in_main_color < depth_threshold));
-
     cv::Mat within_threshold_range_1 = (image1 != 0) &
         (image1 < depth_threshold);
 
@@ -411,33 +407,43 @@ int main(int argc, char* argv[]) {
     image3.copyTo(outp4, within_threshold_range_2);
     cv::imwrite("depth2.png", outp4);
 
-    geometry::Image o3dimg1, o3dimg2, o3dimg3, o3dimg4;
-    io::ReadImage("color1.jpg", o3dimg1);
-    io::ReadImage("depth1.png", o3dimg2);
-    io::ReadImage("color2.jpg", o3dimg3);
-    io::ReadImage("depth2.png", o3dimg4);
+    //cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
+    //std::vector<cv::KeyPoint> keypoints1, keypoints2;
+    //cv::Mat descriptors1, descriptors2;
+    //siftPtr->detectAndCompute(image, cv::noArray(), keypoints1, descriptors1);
+    //siftPtr->detectAndCompute(image2, cv::noArray(), keypoints2, descriptors2);
+    //cv::Mat res1, res2;
+    //cv::drawKeypoints(image, keypoints1, res1);
+    //cv::drawKeypoints(image2, keypoints2, res2);
+    //cv::imwrite("sift_test.jpg", res1);
+    //cv::imwrite("sift_test2.jpg", res2);
 
-    auto RGBD1 = geometry::RGBDImage::CreateFromColorAndDepth(o3dimg1, o3dimg2, 1000.0, 3.0, false);
-    auto RGBD2 = geometry::RGBDImage::CreateFromColorAndDepth(o3dimg3, o3dimg4, 1000.0, 3.0, false);
+    //cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+    //std::vector< std::vector<cv::DMatch> > knn_matches;
+    //matcher->knnMatch(descriptors1, descriptors2, knn_matches, 2);
 
-    auto phc = camera::PinholeCameraIntrinsic();
-    auto phc2 = camera::PinholeCameraIntrinsic();
+    //std::vector<cv::Point2f> good_keys1, good_keys2;
 
-    float* intrins_main = main_calibration.color_camera_calibration.intrinsics.parameters.v;
-    float* intrins_sec = secondary_calibration.color_camera_calibration.intrinsics.parameters.v;
+    //const float ratio_thresh = 0.7f;
+    //std::vector<cv::DMatch> good_matches;
+    //for (size_t i = 0; i < knn_matches.size(); i++)
+    //{
+    //    if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
+    //    {
+    //        good_matches.push_back(knn_matches[i][0]);
+    //        good_keys1.push_back(keypoints1[knn_matches.data()[i][0].queryIdx].pt);
+    //        good_keys2.push_back(keypoints2[knn_matches.data()[i][1].trainIdx].pt);
+    //    }
+    //}
 
-    phc.SetIntrinsics(image.cols, image.rows, intrins_main[2], intrins_main[3], intrins_main[0], intrins_main[1]);
-    phc2.SetIntrinsics(image2.cols, image2.rows, intrins_sec[2], intrins_sec[3], intrins_sec[0], intrins_sec[1]);
+    //cv::Mat img_matches;
+    //drawMatches(image, keypoints1, image2, keypoints2, good_matches, img_matches, cv::Scalar::all(-1),
+    //    cv::Scalar::all(-1), std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+    //cv::imwrite("img_matches.jpg", img_matches);
 
-    auto pcd = geometry::PointCloud::CreateFromRGBDImage(*RGBD1.get(), phc);
-    auto pcd2 = geometry::PointCloud::CreateFromRGBDImage(*RGBD2.get(), phc2);
 
-    std::vector<std::shared_ptr<const geometry::Geometry>> pcds;
 
-    pcds[0] = pcd;
-    pcds[1] = pcd2;
-
-    visualization::DrawGeometries(pcds);
+    //cv::Mat fund = cv::findFundamentalMat(good_keys1, good_keys2, cv::FM_RANSAC);
 
     cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
     std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
@@ -501,7 +507,7 @@ int main(int argc, char* argv[]) {
             exfile.close();
         }
     }
-    
+
     ofstream myfile("intrinsic1.json");
     if (myfile.is_open()) {
         myfile << "{\"intrinsic_matrix\" : [";
@@ -526,5 +532,5 @@ int main(int argc, char* argv[]) {
         }
         myfile2.close();
     }
-	return 0;
+    return 0;
 }

@@ -78,11 +78,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\coend\Downloads\vcpkg\packages\glfw3_x86-windows\include;C:\Users\coend\Downloads\vcpkg\packages\glew_x86-windows\include;C:\Users\coend\Downloads\vcpkg\packages\opengl_x86-windows\include;C:\Users\coend\Downloads\vcpkg\packages\fmt_x86-windows\include;C:\Users\coend\Downloads\eigen-3.4.0\eigen-3.4.0;C:\Users\coend\Downloads\vcpkg\packages\pcl_x86-windows\include;C:\open3d\include;C:\Users\coend\Downloads\opencv\build\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\coend\Downloads\vcpkg\packages\glfw3_x86-windows\lib;C:\Users\coend\Downloads\vcpkg\packages\glew_x86-windows\lib;C:\Users\coend\Downloads\vcpkg\packages\opengl_x86-windows\lib;C:\Users\coend\Downloads\vcpkg\packages\fmt_x86-windows\lib;C:\Users\coend\Downloads\vcpkg\packages\pcl_x86-windows\lib;C:\open3d\lib;C:\Users\coend\Downloads\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\coend\Downloads\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\coend\Downloads\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\coend\Downloads\opencv\build\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\coend\Downloads\opencv\build\x64\vc16\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -118,7 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,6 +143,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opencv_world470d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
