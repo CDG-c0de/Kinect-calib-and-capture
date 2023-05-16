@@ -445,35 +445,64 @@ int main(int argc, char* argv[]) {
 
     //cv::Mat fund = cv::findFundamentalMat(good_keys1, good_keys2, cv::FM_RANSAC);
 
-    cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
-    std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
-    cv::Matx33f matr2 = calibration_to_color_camera_matrix(secondary_calibration);
-    std::vector<float> dist2 = calibration_to_color_camera_dist_coeffs(secondary_calibration);
-    cv::Mat R1;
-    cv::Mat R2;
-    cv::Mat P1;
-    cv::Mat P2;
-    cv::Mat Q;
-    cv::Mat map1, map2, map3, map4, map5, map6, map7, map8;
-    cv::Mat routp1, routp2, routp3, routp4;
+    cv::Mat R1, R2, P1, P2, map1, map2, map3, map4, image_r, image2_r;
 
-    cv::stereoRectify(matr2, dist2, matr1, dist1, outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, Q);
-
+    cv::stereoRectify(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, cv::noArray());
     cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp1.size(), CV_32FC1, map1, map2);
-    cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp2.size(), CV_32FC1, map3, map4);
-    cv::initUndistortRectifyMap(calibration_to_depth_camera_matrix(main_calibration), calibration_to_depth_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp3.size(), CV_32FC1, map5, map6);
-    cv::initUndistortRectifyMap(calibration_to_depth_camera_matrix(secondary_calibration), calibration_to_depth_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp4.size(), CV_32FC1, map7, map8);
+    cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp1.size(), CV_32FC1, map3, map4);
+    cv::remap(outp1, image_r, map1, map2, cv::INTER_LINEAR);
+    cv::remap(outp2, image2_r, map3, map4, cv::INTER_LINEAR);
+    cv::imwrite("rect_1.jpg", image_r);
+    cv::imwrite("rect_2.jpg", image2_r);
 
-    cv::remap(outp1, routp1, map1, map2, cv::INTER_LINEAR);
-    cv::remap(outp2, routp2, map3, map4, cv::INTER_LINEAR);
-    cv::remap(outp3, routp3, map5, map6, cv::INTER_LINEAR);
-    cv::remap(outp4, routp4, map7, map8, cv::INTER_LINEAR);
+    //cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
+    //std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
+    //cv::Matx33f matr2 = calibration_to_color_camera_matrix(secondary_calibration);
+    //std::vector<float> dist2 = calibration_to_color_camera_dist_coeffs(secondary_calibration);
+    //cv::Mat R1;
+    //cv::Mat R2;
+    //cv::Mat P1;
+    //cv::Mat P2;
+    //cv::Mat Q;
+    //cv::Mat map1, map2, map3, map4, map5, map6, map7, map8;
+    //cv::Mat routp1, routp2, routp3, routp4;
 
-    cv::imwrite("rectified1.jpg", routp1);
-    cv::imwrite("rectified2.jpg", routp2);
-    cv::imwrite("rectified3.png", routp3);
-    cv::imwrite("rectified4.png", routp4);
+    //cv::stereoRectify(matr2, dist2, matr1, dist1, outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, Q);
 
+    //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp1.size(), CV_32FC1, map1, map2);
+    //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp2.size(), CV_32FC1, map3, map4);
+    //cv::initUndistortRectifyMap(calibration_to_depth_camera_matrix(main_calibration), calibration_to_depth_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp3.size(), CV_32FC1, map5, map6);
+    //cv::initUndistortRectifyMap(calibration_to_depth_camera_matrix(secondary_calibration), calibration_to_depth_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp4.size(), CV_32FC1, map7, map8);
+
+    //cv::remap(outp1, routp1, map1, map2, cv::INTER_LINEAR);
+    //cv::remap(outp2, routp2, map3, map4, cv::INTER_LINEAR);
+    //cv::remap(outp3, routp3, map5, map6, cv::INTER_LINEAR);
+    //cv::remap(outp4, routp4, map7, map8, cv::INTER_LINEAR);
+
+    //cv::imwrite("rectified1.jpg", routp1);
+    //cv::imwrite("rectified2.jpg", routp2);
+    //cv::imwrite("rectified3.png", routp3);
+    //cv::imwrite("rectified4.png", routp4);
+
+    //open3d::geometry::Image o3d_img, o3d_img2;
+
+    //open3d::io::ReadImageFromMemory("jpg", outp1.data, outp1.total() * sizeof(outp1.data[0]), o3d_img);
+    //open3d::io::ReadImageFromMemory("png", outp3.data, outp3.total() * sizeof(outp3.data[0]), o3d_img2);
+
+    //auto rgbd = open3d::geometry::RGBDImage::CreateFromColorAndDepth(o3d_img, o3d_img2, 1000.0, 3.0, false);
+
+    //cv::Matx33f intr_temp = calibration_to_color_camera_matrix(main_calibration);
+
+    //Eigen::Matrix3d intr;
+    //for (int i = 0; i < intr_temp.channels; i++) {
+    //    intr.data()[i] = intr_temp.val[i];
+    //}
+
+    //auto phc = open3d::camera::PinholeCameraIntrinsic(outp1.cols, outp1.rows, intr);
+
+    //auto pcd = open3d::geometry::PointCloud::CreateFromRGBDImage(*rgbd, phc);
+
+    //open3d::visualization::DrawGeometries({pcd});
     cv::Matx44d homo;
     homo = tr_secondary_color_to_main_color.to_homogeneous();
 
