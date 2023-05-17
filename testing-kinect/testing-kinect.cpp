@@ -199,7 +199,9 @@ Transformation stereo_calibration(const k4a::calibration& main_calib,
         cv::CALIB_FIX_INTRINSIC | cv::CALIB_RATIONAL_MODEL | cv::CALIB_CB_FAST_CHECK);
     cout << "Finished calibrating!\n";
     cout << "Got error of " << error << "\n";
-
+    cout << tr.R << std::endl;
+    cout << tr.t << std::endl;
+    cout << tr.to_homogeneous() << std::endl;
     return tr;
 }
 
@@ -445,44 +447,48 @@ int main(int argc, char* argv[]) {
 
     //cv::Mat fund = cv::findFundamentalMat(good_keys1, good_keys2, cv::FM_RANSAC);
 
-    cv::Mat R1, R2, P1, P2, map1, map2, map3, map4, image_r, image2_r;
+    //cv::Mat R1, R2, P1, P2, map1, map2, map3, map4, image_r, image2_r;
 
-    cv::stereoRectify(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, cv::noArray());
-    cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp1.size(), CV_32FC1, map1, map2);
-    cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp1.size(), CV_32FC1, map3, map4);
-    cv::remap(outp1, image_r, map1, map2, cv::INTER_LINEAR);
-    cv::remap(outp2, image2_r, map3, map4, cv::INTER_LINEAR);
-    cv::imwrite("rect_1.jpg", image_r);
-    cv::imwrite("rect_2.jpg", image2_r);
-
-    //cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
-    //std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
-    //cv::Matx33f matr2 = calibration_to_color_camera_matrix(secondary_calibration);
-    //std::vector<float> dist2 = calibration_to_color_camera_dist_coeffs(secondary_calibration);
-    //cv::Mat R1;
-    //cv::Mat R2;
-    //cv::Mat P1;
-    //cv::Mat P2;
-    //cv::Mat Q;
-    //cv::Mat map1, map2, map3, map4, map5, map6, map7, map8;
-    //cv::Mat routp1, routp2, routp3, routp4;
-
-    //cv::stereoRectify(matr2, dist2, matr1, dist1, outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, Q);
-
+    //cv::stereoRectify(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, cv::noArray());
     //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp1.size(), CV_32FC1, map1, map2);
-    //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp2.size(), CV_32FC1, map3, map4);
-    //cv::initUndistortRectifyMap(calibration_to_depth_camera_matrix(main_calibration), calibration_to_depth_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp3.size(), CV_32FC1, map5, map6);
-    //cv::initUndistortRectifyMap(calibration_to_depth_camera_matrix(secondary_calibration), calibration_to_depth_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp4.size(), CV_32FC1, map7, map8);
+    //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp1.size(), CV_32FC1, map3, map4);
+    //cv::remap(outp1, image_r, map1, map2, cv::INTER_LINEAR);
+    //cv::remap(outp2, image2_r, map3, map4, cv::INTER_LINEAR);
+    //cv::imwrite("rect_1.jpg", image_r);
+    //cv::imwrite("rect_2.jpg", image2_r);
 
-    //cv::remap(outp1, routp1, map1, map2, cv::INTER_LINEAR);
-    //cv::remap(outp2, routp2, map3, map4, cv::INTER_LINEAR);
-    //cv::remap(outp3, routp3, map5, map6, cv::INTER_LINEAR);
-    //cv::remap(outp4, routp4, map7, map8, cv::INTER_LINEAR);
+    cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
+    std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
+    cv::Matx33f matr2 = calibration_to_color_camera_matrix(secondary_calibration);
+    std::vector<float> dist2 = calibration_to_color_camera_dist_coeffs(secondary_calibration);
+    cv::Matx33f matr3 = calibration_to_depth_camera_matrix(main_calibration);
+    std::vector<float> dist3 = calibration_to_depth_camera_dist_coeffs(main_calibration);
+    cv::Matx33f matr4 = calibration_to_depth_camera_matrix(secondary_calibration);
+    std::vector<float> dist4 = calibration_to_depth_camera_dist_coeffs(secondary_calibration);
+    cv::Mat R1;
+    cv::Mat R2;
+    cv::Mat P1;
+    cv::Mat P2;
+    cv::Mat Q;
+    cv::Mat map1, map2, map3, map4, map5, map6, map7, map8;
+    cv::Mat routp1, routp2, routp3, routp4;
 
-    //cv::imwrite("rectified1.jpg", routp1);
-    //cv::imwrite("rectified2.jpg", routp2);
-    //cv::imwrite("rectified3.png", routp3);
-    //cv::imwrite("rectified4.png", routp4);
+    cv::stereoRectify(matr2, dist2, matr1, dist1, outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, Q, cv::CALIB_ZERO_DISPARITY, -1, outp1.size());
+
+    cv::initUndistortRectifyMap(matr1, dist1, R2, P2, outp1.size(), CV_32FC1, map1, map2);
+    cv::initUndistortRectifyMap(matr2, dist2, R1, P1, outp2.size(), CV_32FC1, map3, map4);
+    cv::initUndistortRectifyMap(matr3, dist3, R2, P2, outp3.size(), CV_32FC1, map5, map6);
+    cv::initUndistortRectifyMap(matr4, dist4, R1, P1, outp4.size(), CV_32FC1, map7, map8);
+
+    cv::remap(outp1, routp1, map1, map2, cv::INTER_LINEAR);
+    cv::remap(outp2, routp2, map3, map4, cv::INTER_LINEAR);
+    cv::remap(outp3, routp3, map5, map6, cv::INTER_LINEAR);
+    cv::remap(outp4, routp4, map7, map8, cv::INTER_LINEAR);
+
+    cv::imwrite("rectified1.jpg", routp1);
+    cv::imwrite("rectified2.jpg", routp2);
+    cv::imwrite("rectified3.png", routp3);
+    cv::imwrite("rectified4.png", routp4);
 
     //open3d::geometry::Image o3d_img, o3d_img2;
 
