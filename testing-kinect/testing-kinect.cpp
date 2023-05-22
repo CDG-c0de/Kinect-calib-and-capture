@@ -374,11 +374,6 @@ int main(int argc, char* argv[]) {
             tr_secondary_depth_to_main_color);
     k4a::transformation secondary_depth_to_main_color(secondary_depth_to_main_color_cal);
 
-    k4a::calibration secondary_color_to_main_color_cal =
-        construct_device_to_device_calibration(main_calibration,
-            secondary_calibration,
-            tr_secondary_color_to_main_color);
-
     k4a::transformation main_depth_to_main_color(main_calibration);
     k4a::image main_depth_in_main_color = create_depth_image_like(color1);
     main_depth_to_main_color.depth_image_to_color_camera(depth1, &main_depth_in_main_color);
@@ -409,106 +404,6 @@ int main(int argc, char* argv[]) {
     image3.copyTo(outp4, within_threshold_range_2);
     cv::imwrite("depth2.png", outp4);
 
-    //cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
-    //std::vector<cv::KeyPoint> keypoints1, keypoints2;
-    //cv::Mat descriptors1, descriptors2;
-    //siftPtr->detectAndCompute(image, cv::noArray(), keypoints1, descriptors1);
-    //siftPtr->detectAndCompute(image2, cv::noArray(), keypoints2, descriptors2);
-    //cv::Mat res1, res2;
-    //cv::drawKeypoints(image, keypoints1, res1);
-    //cv::drawKeypoints(image2, keypoints2, res2);
-    //cv::imwrite("sift_test.jpg", res1);
-    //cv::imwrite("sift_test2.jpg", res2);
-
-    //cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
-    //std::vector< std::vector<cv::DMatch> > knn_matches;
-    //matcher->knnMatch(descriptors1, descriptors2, knn_matches, 2);
-
-    //std::vector<cv::Point2f> good_keys1, good_keys2;
-
-    //const float ratio_thresh = 0.7f;
-    //std::vector<cv::DMatch> good_matches;
-    //for (size_t i = 0; i < knn_matches.size(); i++)
-    //{
-    //    if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance)
-    //    {
-    //        good_matches.push_back(knn_matches[i][0]);
-    //        good_keys1.push_back(keypoints1[knn_matches.data()[i][0].queryIdx].pt);
-    //        good_keys2.push_back(keypoints2[knn_matches.data()[i][1].trainIdx].pt);
-    //    }
-    //}
-
-    //cv::Mat img_matches;
-    //drawMatches(image, keypoints1, image2, keypoints2, good_matches, img_matches, cv::Scalar::all(-1),
-    //    cv::Scalar::all(-1), std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-    //cv::imwrite("img_matches.jpg", img_matches);
-
-
-
-    //cv::Mat fund = cv::findFundamentalMat(good_keys1, good_keys2, cv::FM_RANSAC);
-
-    //cv::Mat R1, R2, P1, P2, map1, map2, map3, map4, image_r, image2_r;
-
-    //cv::stereoRectify(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, cv::noArray());
-    //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(main_calibration), calibration_to_color_camera_dist_coeffs(main_calibration), R2, cv::noArray(), outp1.size(), CV_32FC1, map1, map2);
-    //cv::initUndistortRectifyMap(calibration_to_color_camera_matrix(secondary_calibration), calibration_to_color_camera_dist_coeffs(secondary_calibration), R1, cv::noArray(), outp1.size(), CV_32FC1, map3, map4);
-    //cv::remap(outp1, image_r, map1, map2, cv::INTER_LINEAR);
-    //cv::remap(outp2, image2_r, map3, map4, cv::INTER_LINEAR);
-    //cv::imwrite("rect_1.jpg", image_r);
-    //cv::imwrite("rect_2.jpg", image2_r);
-
-    cv::Matx33f matr1 = calibration_to_color_camera_matrix(main_calibration);
-    std::vector<float> dist1 = calibration_to_color_camera_dist_coeffs(main_calibration);
-    cv::Matx33f matr2 = calibration_to_color_camera_matrix(secondary_calibration);
-    std::vector<float> dist2 = calibration_to_color_camera_dist_coeffs(secondary_calibration);
-    cv::Matx33f matr3 = calibration_to_depth_camera_matrix(main_calibration);
-    std::vector<float> dist3 = calibration_to_depth_camera_dist_coeffs(main_calibration);
-    cv::Matx33f matr4 = calibration_to_depth_camera_matrix(secondary_calibration);
-    std::vector<float> dist4 = calibration_to_depth_camera_dist_coeffs(secondary_calibration);
-    cv::Mat R1;
-    cv::Mat R2;
-    cv::Mat P1;
-    cv::Mat P2;
-    cv::Mat Q;
-    cv::Mat map1, map2, map3, map4, map5, map6, map7, map8;
-    cv::Mat routp1, routp2, routp3, routp4;
-
-    cv::stereoRectify(matr2, dist2, matr1, dist1, outp1.size(), tr_secondary_color_to_main_color.R, tr_secondary_color_to_main_color.t, R1, R2, P1, P2, Q, cv::CALIB_ZERO_DISPARITY, -1, outp1.size());
-
-    cv::initUndistortRectifyMap(matr1, dist1, R2, P2, outp1.size(), CV_32FC1, map1, map2);
-    cv::initUndistortRectifyMap(matr2, dist2, R1, P1, outp2.size(), CV_32FC1, map3, map4);
-    cv::initUndistortRectifyMap(matr3, dist3, R2, P2, outp3.size(), CV_32FC1, map5, map6);
-    cv::initUndistortRectifyMap(matr4, dist4, R1, P1, outp4.size(), CV_32FC1, map7, map8);
-
-    cv::remap(outp1, routp1, map1, map2, cv::INTER_LINEAR);
-    cv::remap(outp2, routp2, map3, map4, cv::INTER_LINEAR);
-    cv::remap(outp3, routp3, map5, map6, cv::INTER_LINEAR);
-    cv::remap(outp4, routp4, map7, map8, cv::INTER_LINEAR);
-
-    cv::imwrite("rectified1.jpg", routp1);
-    cv::imwrite("rectified2.jpg", routp2);
-    cv::imwrite("rectified3.png", routp3);
-    cv::imwrite("rectified4.png", routp4);
-
-    //open3d::geometry::Image o3d_img, o3d_img2;
-
-    //open3d::io::ReadImageFromMemory("jpg", outp1.data, outp1.total() * sizeof(outp1.data[0]), o3d_img);
-    //open3d::io::ReadImageFromMemory("png", outp3.data, outp3.total() * sizeof(outp3.data[0]), o3d_img2);
-
-    //auto rgbd = open3d::geometry::RGBDImage::CreateFromColorAndDepth(o3d_img, o3d_img2, 1000.0, 3.0, false);
-
-    //cv::Matx33f intr_temp = calibration_to_color_camera_matrix(main_calibration);
-
-    //Eigen::Matrix3d intr;
-    //for (int i = 0; i < intr_temp.channels; i++) {
-    //    intr.data()[i] = intr_temp.val[i];
-    //}
-
-    //auto phc = open3d::camera::PinholeCameraIntrinsic(outp1.cols, outp1.rows, intr);
-
-    //auto pcd = open3d::geometry::PointCloud::CreateFromRGBDImage(*rgbd, phc);
-
-    //open3d::visualization::DrawGeometries({pcd});
     cv::Matx44d homo;
     homo = tr_secondary_color_to_main_color.to_homogeneous();
 
