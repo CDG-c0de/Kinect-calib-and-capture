@@ -42,7 +42,7 @@ public:
             k4a::device next_device = k4a::device::open(i); // construct a device using this index
             // If you want to synchronize cameras, you need to manually set both their exposures
             next_device.set_color_control(K4A_COLOR_CONTROL_EXPOSURE_TIME_ABSOLUTE,
-                K4A_COLOR_CONTROL_MODE_MANUAL,
+                K4A_COLOR_CONTROL_MODE_AUTO,
                 color_exposure_usec);
             // This setting compensates for the flicker of lights due to the frequency of AC power in your region. If
             // you are in an area with 50 Hz power, this may need to be updated (check the docs for

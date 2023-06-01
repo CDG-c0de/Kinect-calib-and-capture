@@ -24,7 +24,6 @@ using json = nlohmann::json;
 
 #define MIN_TIME_BETWEEN_DEPTH_CAMERA_PICTURES_USEC 160
 #define CHESSBOARD_SQUARE_SIZE 24
-#define FLANN_INDEX_KDTREE 1
 
 static cv::Mat depth_to_opencv(const k4a::image& im) {
     return cv::Mat(im.get_height_pixels(),
@@ -82,41 +81,15 @@ static cv::Matx33f calibration_to_color_camera_matrix(const k4a::calibration& ca
     return camera_matrix;
 }
 
-static vector<float> calibration_to_depth_camera_dist_coeffs(const k4a::calibration& cal) {
-    const k4a_calibration_intrinsic_parameters_t::_param& i = cal.depth_camera_calibration.intrinsics.parameters.param;
-    return { i.k1, i.k2, i.p1, i.p2, i.k3, i.k4, i.k5, i.k6 };
-}
-
-static cv::Matx33f calibration_to_depth_camera_matrix(const k4a::calibration& cal) {
-    const k4a_calibration_intrinsic_parameters_t::_param& i = cal.depth_camera_calibration.intrinsics.parameters.param;
-    cv::Matx33f camera_matrix = cv::Matx33f::eye();
-    camera_matrix(0, 0) = i.fx;
-    camera_matrix(1, 1) = i.fy;
-    camera_matrix(0, 2) = i.cx;
-    camera_matrix(1, 2) = i.cy;
-    return camera_matrix;
-}
-
 k4a_calibration_t get_calib(k4a_device_t capturer, k4a_device_configuration_t config) {
     k4a_calibration_t calibration;
     k4a_device_get_calibration(capturer, config.depth_mode, config.color_resolution, &calibration);
     return calibration;
 }
 
-k4a::image transform_depth_to_color_master(k4a_device_t capturer, k4a_device_configuration_t main_config, k4a::capture image) {
+k4a::image transform_depth_to_color(k4a_device_t capturer, k4a_device_configuration_t main_config, k4a::capture image) {
     k4a_transformation_t transformation = NULL;
     k4a_calibration_t calibration = get_calib(capturer, main_config);
-    transformation = k4a_transformation_create(&calibration);
-    k4a_image_t transformed = NULL;
-    k4a_image_create(K4A_IMAGE_FORMAT_DEPTH16, k4a_image_get_width_pixels(image.get_color_image().handle()), k4a_image_get_height_pixels(image.get_color_image().handle()), 0, &transformed);
-    k4a_transformation_depth_image_to_color_camera(transformation, image.get_depth_image().handle(), transformed);
-    k4a_transformation_destroy(transformation);
-    return k4a::image(transformed);
-}
-
-k4a::image transform_depth_to_color_slave(k4a_device_t capturer, k4a_device_configuration_t secondary_config, k4a::capture image) {
-    k4a_transformation_t transformation = NULL;
-    k4a_calibration_t calibration = get_calib(capturer, secondary_config);
     transformation = k4a_transformation_create(&calibration);
     k4a_image_t transformed = NULL;
     k4a_image_create(K4A_IMAGE_FORMAT_DEPTH16, k4a_image_get_width_pixels(image.get_color_image().handle()), k4a_image_get_height_pixels(image.get_color_image().handle()), 0, &transformed);
@@ -267,75 +240,49 @@ static Transformation calibrate_devices(MultiDeviceCapturer& capturer,
     exit(1);
 }
 
-static k4a::calibration construct_device_to_device_calibration(const k4a::calibration& main_cal,
-    const k4a::calibration& secondary_cal,
-    const Transformation& secondary_to_main) {
-    k4a::calibration cal = secondary_cal;
-    k4a_calibration_extrinsics_t& ex = cal.extrinsics[K4A_CALIBRATION_TYPE_DEPTH][K4A_CALIBRATION_TYPE_COLOR];
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            ex.rotation[i * 3 + j] = static_cast<float>(secondary_to_main.R(i, j));
-        }
-    }
-    for (int i = 0; i < 3; ++i) {
-        ex.translation[i] = static_cast<float>(secondary_to_main.t[i]);
-    }
-    cal.color_camera_calibration = main_cal.color_camera_calibration;
-    return cal;
-}
-
-static Transformation get_depth_to_color_transformation_from_calibration(const k4a::calibration& cal) {
-    const k4a_calibration_extrinsics_t& ex = cal.extrinsics[K4A_CALIBRATION_TYPE_DEPTH][K4A_CALIBRATION_TYPE_COLOR];
-    Transformation tr;
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < 3; ++j) {
-            tr.R(i, j) = ex.rotation[i * 3 + j];
-        }
-    }
-    tr.t = cv::Vec3d(ex.translation[0], ex.translation[1], ex.translation[2]);
-    return tr;
-}
-
-static k4a::image create_depth_image_like(const k4a::image& im) {
-    return k4a::image::create(K4A_IMAGE_FORMAT_DEPTH16,
-        im.get_width_pixels(),
-        im.get_height_pixels(),
-        im.get_width_pixels() * static_cast<int>(sizeof(uint16_t)));
-}
-
-static k4a::image create_color_image_like(const k4a::image& im) {
-    return k4a::image::create(im.get_format(),
-        im.get_width_pixels(),
-        im.get_height_pixels(),
-        im.get_stride_bytes());
-}
-
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         exit(1);
     }
-    vector<uint32_t> device_indices{ 0, 1 };
-    int depth_threshold = 500;
     uint32_t count = k4a_device_get_installed_count();
+    vector<uint32_t> device_indices{};
+    for (int i = 0; i < count; i++) {
+        device_indices.push_back(i);
+    }
+    int depth_threshold = 500;
     printf("number of cameras: %d", count);
     k4a_device_configuration_t main_config = get_master_config();
     k4a_device_configuration_t secondary_config = get_subordinate_config();
     MultiDeviceCapturer capturer(device_indices, 8000, 1);
     capturer.start_devices(main_config, secondary_config);
     vector<k4a::capture> background_captures = capturer.get_synchronized_captures(secondary_config, true);
-    k4a::image color1 = background_captures[0].get_color_image();
-    k4a::image depth1 = background_captures[0].get_depth_image();
-    k4a::image depth1_tr = transform_depth_to_color_master(capturer.get_master_device().handle(), main_config, background_captures[0]);
-    k4a::image color2 = background_captures[1].get_color_image();
-    k4a::image depth2 = background_captures[1].get_depth_image();
-    k4a::image depth2_tr = transform_depth_to_color_slave(capturer.get_subordinate_device_by_index(0).handle(), secondary_config, background_captures[1]);
-    cv::Mat image = color_to_opencv(color1);
-    cv::Mat image1 = depth_to_opencv(depth1_tr);
-    cv::Mat image2 = color_to_opencv(color2);
-    cv::Mat image3 = depth_to_opencv(depth2_tr);
+    vector<cv::Mat> color_images;
+    vector<cv::Mat> depth_images;
+    k4a::image temp_depth;
+    for (int i = 0; i < count; i++) {
+        color_images.push_back(color_to_opencv(background_captures[i].get_color_image()));
+        if (i == 0) {
+            temp_depth = transform_depth_to_color(capturer.get_master_device().handle(), main_config, background_captures[i]);
+            depth_images.push_back(depth_to_opencv(temp_depth));
+        } else {
+            temp_depth = transform_depth_to_color(capturer.get_subordinate_device_by_index(i - 1).handle(), secondary_config, background_captures[i]);
+            depth_images.push_back(depth_to_opencv(temp_depth));
+        }
+        std::stringstream n;
+        n << "col" << i << ".jpg";
+        cv::imwrite(n.str(), color_images[i]);
+        n.str(std::string());
+        n << "dep" << i << ".png";
+        cv::imwrite(n.str(), depth_images[i]);
+        n.str(std::string());
+    }
     Transformation tr_secondary_color_to_main_color;
 
     if (argv[1][0] == '1') {
+        if (count != 2) {
+            std::cout << "Stereo calibration only supports 2 cameras" << std::endl;
+            exit(1);
+        }
         tr_secondary_color_to_main_color = calibrate_devices(capturer,
             main_config,
             secondary_config,
@@ -354,55 +301,30 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    k4a::calibration main_calibration =
-        capturer.get_master_device().get_calibration(main_config.depth_mode,
-            main_config.color_resolution);
+    std::vector<k4a::calibration> cals;
+    for (int i = 0; i < count; i++) {
+        if (i == 0) {
+            cals.push_back(capturer.get_master_device().get_calibration(main_config.depth_mode, main_config.color_resolution));
+        } else {
+            cals.push_back(capturer.get_subordinate_device_by_index(i-1).get_calibration(secondary_config.depth_mode, secondary_config.color_resolution));
+        }
+    }
 
-    k4a::calibration secondary_calibration =
-        capturer.get_subordinate_device_by_index(0).get_calibration(secondary_config.depth_mode,
-            secondary_config.color_resolution);
+    std::vector<cv::Mat> threshold_ranges;
 
-    Transformation tr_secondary_depth_to_secondary_color = get_depth_to_color_transformation_from_calibration(
-        secondary_calibration);
-
-    Transformation tr_secondary_depth_to_main_color = tr_secondary_color_to_main_color.compose_with(
-        tr_secondary_depth_to_secondary_color);
-
-    k4a::calibration secondary_depth_to_main_color_cal =
-        construct_device_to_device_calibration(main_calibration,
-            secondary_calibration,
-            tr_secondary_depth_to_main_color);
-    k4a::transformation secondary_depth_to_main_color(secondary_depth_to_main_color_cal);
-
-    k4a::transformation main_depth_to_main_color(main_calibration);
-    k4a::image main_depth_in_main_color = create_depth_image_like(color1);
-    main_depth_to_main_color.depth_image_to_color_camera(depth1, &main_depth_in_main_color);
-    cv::Mat cv_main_depth_in_main_color = depth_to_opencv(main_depth_in_main_color);
-
-    k4a::image secondary_depth_in_main_color = create_depth_image_like(color1);
-    secondary_depth_to_main_color.depth_image_to_color_camera(depth2,
-        &secondary_depth_in_main_color);
-    cv::Mat cv_secondary_depth_in_main_color = depth_to_opencv(secondary_depth_in_main_color);
-
-    cv::Mat main_valid_mask = cv_main_depth_in_main_color != 0;
-    cv::Mat secondary_valid_mask = cv_secondary_depth_in_main_color != 0;
-
-    cv::Mat within_threshold_range_1 = (image1 != 0) &
-        (image1 < depth_threshold);
-
-    cv::Mat within_threshold_range_2 = (image3 != 0) &
-        (image3 < depth_threshold);
-
-    cv::Mat outp1, outp2, outp3, outp4;
-
-    image.copyTo(outp1, within_threshold_range_1);
-    cv::imwrite("color1.jpg", outp1);
-    image2.copyTo(outp2, within_threshold_range_2);
-    cv::imwrite("color2.jpg", outp2);
-    image1.copyTo(outp3, within_threshold_range_1);
-    cv::imwrite("depth1.png", outp3);
-    image3.copyTo(outp4, within_threshold_range_2);
-    cv::imwrite("depth2.png", outp4);
+    for (int i = 0; i < count; i++) {
+        cv::Mat temp;
+        threshold_ranges.push_back((depth_images[i] != 0) & (depth_images[i] < depth_threshold));
+        color_images[i].copyTo(temp, threshold_ranges[i]);
+        std::stringstream n;
+        n << "color" << i << ".jpg";
+        cv::imwrite(n.str(), temp);
+        depth_images[i].copyTo(temp, threshold_ranges[i]);
+        n.str(std::string());
+        n << "depth" << i << ".png";
+        cv::imwrite(n.str(), temp);
+        n.str(std::string());
+    }
 
     cv::Matx44d homo;
     homo = tr_secondary_color_to_main_color.to_homogeneous();
@@ -437,30 +359,22 @@ int main(int argc, char* argv[]) {
             exfile.close();
         }
     }
-
-    ofstream myfile("intrinsic1.json");
-    if (myfile.is_open()) {
-        myfile << "{\"intrinsic_matrix\" : [";
-        for (int count = 0; count < main_calibration.depth_camera_calibration.intrinsics.parameter_count; count++) {
-            if (count == (main_calibration.depth_camera_calibration.intrinsics.parameter_count - 1)) {
-                myfile << main_calibration.depth_camera_calibration.intrinsics.parameters.v[count] << "]}";
-                continue;
+    for (int i = 0; i < count; i++) {
+        std::stringstream n;
+        n << "intrinsic" << i << ".json";
+        ofstream myfile(n.str());
+        if (myfile.is_open()) {
+            myfile << "{\"intrinsic_matrix\" : [";
+            for (int count = 0; count < cals[i].depth_camera_calibration.intrinsics.parameter_count; count++) {
+                if (count == (cals[i].depth_camera_calibration.intrinsics.parameter_count - 1)) {
+                    myfile << cals[i].depth_camera_calibration.intrinsics.parameters.v[count] << "]}";
+                    continue;
+                }
+                myfile << cals[i].depth_camera_calibration.intrinsics.parameters.v[count] << ", ";
             }
-            myfile << main_calibration.depth_camera_calibration.intrinsics.parameters.v[count] << ", ";
+            myfile.close();
         }
-        myfile.close();
-    }
-    ofstream myfile2("intrinsic2.json");
-    if (myfile2.is_open()) {
-        myfile2 << "{\"intrinsic_matrix\" : [";
-        for (int count = 0; count < secondary_calibration.depth_camera_calibration.intrinsics.parameter_count; count++) {
-            if (count == (secondary_calibration.depth_camera_calibration.intrinsics.parameter_count - 1)) {
-                myfile2 << secondary_calibration.depth_camera_calibration.intrinsics.parameters.v[count] << "]}";
-                continue;
-            }
-            myfile2 << secondary_calibration.depth_camera_calibration.intrinsics.parameters.v[count] << ", ";
-        }
-        myfile2.close();
+        n.str(std::string());
     }
     return 0;
 }
