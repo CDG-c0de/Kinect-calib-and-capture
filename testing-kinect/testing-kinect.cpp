@@ -245,6 +245,10 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     uint32_t count = k4a_device_get_installed_count();
+    if (count < 1) {
+        std::cout << "connect at least one device" << std::endl;
+        exit(1);
+    }
     vector<uint32_t> device_indices{};
     for (int i = 0; i < count; i++) {
         device_indices.push_back(i);
@@ -254,19 +258,23 @@ int main(int argc, char* argv[]) {
     k4a_device_configuration_t main_config = get_master_config();
     k4a_device_configuration_t secondary_config = get_subordinate_config();
     MultiDeviceCapturer capturer(device_indices, 8000, 1);
-    capturer.start_devices(main_config, secondary_config);
+    if (count == 1) {
+        capturer.start_devices(get_default_config(), secondary_config);
+    } else {
+        capturer.start_devices(main_config, secondary_config);
+    }
     vector<k4a::capture> background_captures = capturer.get_synchronized_captures(secondary_config, true);
     vector<cv::Mat> color_images;
     vector<cv::Mat> depth_images;
-    k4a::image temp_depth;
+    vector<k4a::image> temp_depths;
     for (int i = 0; i < count; i++) {
         color_images.push_back(color_to_opencv(background_captures[i].get_color_image()));
         if (i == 0) {
-            temp_depth = transform_depth_to_color(capturer.get_master_device().handle(), main_config, background_captures[i]);
-            depth_images.push_back(depth_to_opencv(temp_depth));
+            temp_depths.push_back(transform_depth_to_color(capturer.get_master_device().handle(), main_config, background_captures[i]));
+            depth_images.push_back(depth_to_opencv(temp_depths[i]));
         } else {
-            temp_depth = transform_depth_to_color(capturer.get_subordinate_device_by_index(i - 1).handle(), secondary_config, background_captures[i]);
-            depth_images.push_back(depth_to_opencv(temp_depth));
+            temp_depths.push_back(transform_depth_to_color(capturer.get_subordinate_device_by_index(i - 1).handle(), secondary_config, background_captures[i]));
+            depth_images.push_back(depth_to_opencv(temp_depths[i]));
         }
         std::stringstream n;
         n << "col" << i << ".jpg";
@@ -310,16 +318,14 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::vector<cv::Mat> threshold_ranges;
-
     for (int i = 0; i < count; i++) {
-        cv::Mat temp;
-        threshold_ranges.push_back((depth_images[i] != 0) & (depth_images[i] < depth_threshold));
-        color_images[i].copyTo(temp, threshold_ranges[i]);
+        cv::Mat temp, temp2;
+        temp2 = (depth_images[i] != 0) & (depth_images[i] < depth_threshold);
+        color_images[i].copyTo(temp, temp2);
         std::stringstream n;
         n << "color" << i << ".jpg";
         cv::imwrite(n.str(), temp);
-        depth_images[i].copyTo(temp, threshold_ranges[i]);
+        depth_images[i].copyTo(temp, temp2);
         n.str(std::string());
         n << "depth" << i << ".png";
         cv::imwrite(n.str(), temp);
