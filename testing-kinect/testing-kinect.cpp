@@ -165,8 +165,8 @@ Transformation stereo_calibration(const k4a::calibration& main_calib,
         main_camera_matrix,
         main_dist_coeff,
         image_size,
-        tr.R, // output
-        tr.t, // output
+        tr.R,
+        tr.t,
         cv::noArray(),
         cv::noArray(),
         cv::CALIB_FIX_INTRINSIC | cv::CALIB_RATIONAL_MODEL | cv::CALIB_CB_FAST_CHECK);
