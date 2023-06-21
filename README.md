@@ -14,11 +14,8 @@ After 50 captures the calibration is complete <br />
 The chessboard used is from: [link](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/tree/develop/examples/green_screen) <br /> <br />
 **NOTE: the value of the CHESSBOARD_SQUARE_SIZE define at the top of the testing-kinect.cpp file has to match the square size (in mm) of the chessboard being used for calibration**
 ## Output
-The program generates the following output: <br /> <br />
-color1.jpg&nbsp;&nbsp;&nbsp;&nbsp; *the color image of the master camera* <br /> <br />
-color2.jpg&nbsp;&nbsp;&nbsp;&nbsp; *the color image of the subordinate camera* <br /> <br />
-depth1.png&nbsp;&nbsp;&nbsp;&nbsp; *the depth image of the master camera* <br /> <br />
-depth2.png&nbsp;&nbsp;&nbsp;&nbsp; *the depth image of the subordinate camera* <br /> <br />
-intrinsic1.json&nbsp;&nbsp;&nbsp;&nbsp; *the camera intrinsic matrix of the master camera* <br /> <br />
-intrinsic2.json&nbsp;&nbsp;&nbsp;&nbsp; *the camera intrinsic matrix of the subordinate camera* <br /> <br />
+The program generates the following output, depending on how many cameras are connected, index represents the camera (index is 0 up to amount of cameras-1): <br /> <br />
+color[index].jpg&nbsp;&nbsp;&nbsp;&nbsp; *the color image of camera [index]* <br /> <br />
+depth[index].png&nbsp;&nbsp;&nbsp;&nbsp; *the depth image of camera [index]* <br /> <br />
+intrinsic[index].json&nbsp;&nbsp;&nbsp;&nbsp; *the camera intrinsic matrix of camera [index]* <br /> <br />
 extrinsic.json&nbsp;&nbsp;&nbsp;&nbsp; *the camera extrinsic matrices, for the transformation fom sub camera to master camera*
